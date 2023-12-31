@@ -1,25 +1,27 @@
-BINARY     := ramdisk
+BINARY     := test_ramdisk
 KERNEL      := /lib/modules/$(shell uname -r)/build
 ARCH        := x86
 C_FLAGS     := -Wall
 KMOD_DIR    := $(shell pwd)
 TARGET_PATH := /lib/modules/$(shell uname -r)/kernel/drivers/char
-
-OBJECTS := ramdisk.o
+BUILD_DIR   := $(KMOD_DIR)/build
 
 ccflags-y += $(C_FLAGS)
 
-obj-m += $(BINARY).o
+obj-m += $(BUILD_DIR)/$(BINARY).o
+$(BINARY)-y := ramdisk.o
 
-$(BINARY)-y := $(OBJECTS)
+$(BUILD_DIR)/$(BINARY).ko:
+	make -C $(KERNEL) M=$(BUILD_DIR) modules
 
-$(BINARY).ko:
-    make -C $(KERNEL) M=$(KMOD_DIR) modules
+src/ramdisk.o: src/ramdisk.c
+	$(MAKE) -C $(KERNEL) M=$(KMOD_DIR) src
 
 install:
-    cp $(BINARY).ko $(TARGET_PATH)
-    depmod -a
+	cp $(BUILD_DIR)/$(BINARY).ko $(TARGET_PATH)
+	depmod -a
 
 clean:
-    rm -f *.ko
-    rm -f *.o
+	rm -rf $(BUILD_DIR)/*.ko
+	rm -rf $(BUILD_DIR)/*.o
+	rm -rf $(KMOD_DIR)/src/*.o
