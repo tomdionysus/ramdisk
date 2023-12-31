@@ -25,3 +25,9 @@ https://dl-cdn.alpinelinux.org/alpine/edge/testing/
 EOF
 apk update
 ```
+
+## Loading and unloading
+
+lsmod | grep ramdisk
+dmesg | grep ramdisk
+rmmod -f test_ramdisk

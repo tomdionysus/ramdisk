@@ -1,6 +1,8 @@
+CONFIG_MODULE_SIG=n
+
 BINARY     := test_ramdisk
 KERNEL      := /lib/modules/$(shell uname -r)/build
-ARCH        := x86
+ARCH        := ${uname -m}
 C_FLAGS     := -Wall
 KMOD_DIR    := $(shell pwd)
 TARGET_PATH := /lib/modules/$(shell uname -r)/kernel/drivers/char
@@ -18,7 +20,24 @@ $(BINARY).ko:
 
 install:
 	cp $(BINARY).ko $(TARGET_PATH)
-	depmod -a
+
+load:
+	modprobe $(BINARY)
+
+remove:
+	rm $(TARGET_PATH)/$(BINARY).ko
+	
+unload:
+	rmmod -fv $(BINARY)
+
+which:
+	echo $(TARGET_PATH)/$(BINARY).ko
+
+log:
+	echo "7 7" > /proc/sys/kernel/printk
+	dmesg -r | grep ramdisk
+
+reset: clean remove unload  
 
 clean:
 	rm -f *.ko
