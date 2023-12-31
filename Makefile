@@ -4,24 +4,27 @@ ARCH        := x86
 C_FLAGS     := -Wall
 KMOD_DIR    := $(shell pwd)
 TARGET_PATH := /lib/modules/$(shell uname -r)/kernel/drivers/char
-BUILD_DIR   := $(KMOD_DIR)/build
+
+OBJECTS := ramdisk.o
 
 ccflags-y += $(C_FLAGS)
 
-obj-m += $(BUILD_DIR)/$(BINARY).o
-$(BINARY)-y := ramdisk.o
+obj-m += $(BINARY).o
 
-$(BUILD_DIR)/$(BINARY).ko:
-	make -C $(KERNEL) M=$(BUILD_DIR) modules
+$(BINARY)-y := $(OBJECTS)
 
-src/ramdisk.o: src/ramdisk.c
-	$(MAKE) -C $(KERNEL) M=$(KMOD_DIR) src
+$(BINARY).ko:
+	make -C $(KERNEL) M=$(KMOD_DIR) modules
 
 install:
-	cp $(BUILD_DIR)/$(BINARY).ko $(TARGET_PATH)
+	cp $(BINARY).ko $(TARGET_PATH)
 	depmod -a
 
 clean:
-	rm -rf $(BUILD_DIR)/*.ko
-	rm -rf $(BUILD_DIR)/*.o
-	rm -rf $(KMOD_DIR)/src/*.o
+	rm -f *.ko
+	rm -f *.o
+	rm -f *.test_*
+	rm -f .*.cmd
+	rm -f test_*.mod*
+	rm -f Module.symvers
+	rm -f modules.order
