@@ -159,11 +159,6 @@ static void do_cleanup(void) {
         if(ramdisk_device->_disk_added) {
             // Remove the block device
             del_gendisk(ramdisk_device->disk);
-            // // Free the queue
-            // if(ramdisk_device->disk->queue) {
-            //     blk_mq_destroy_queue(ramdisk_device->disk->queue);
-            //     blk_put_queue(ramdisk_device->disk->queue);
-            // }
             // Free the block device 
             put_disk(ramdisk_device->disk);
             // For belt and braces if there's a failure later on
