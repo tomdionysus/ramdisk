@@ -35,32 +35,25 @@ static struct ramdisk_device *ramdisk_device = NULL;
 
 static int blockdev_open(struct gendisk *disk, blk_mode_t mode)
 {
-    printk(KERN_DEBUG "ramdisk: blockdev_open");
     if(!blk_get_queue(disk->queue)){ 
         printk(KERN_ERR "ramdisk: blk_get_queue cannot get queue");
         return -ENXIO;
     }
-    printk(KERN_DEBUG "ramdisk: blk_get_queue complete");
 
     return 0;
 }
 
 static void blockdev_release(struct gendisk *disk)
 {
-    printk(KERN_DEBUG "ramdisk: blockdev_release");
     blk_put_queue(disk->queue);
-    printk(KERN_DEBUG "ramdisk: blk_put_queue complete");
 }
 
 static int blockdev_ioctl(struct block_device *bdev, fmode_t mode, unsigned cmd, unsigned long arg)
 {
-    printk(KERN_DEBUG "ramdisk: blockdev_ioctl command %d", cmd);
-
-    struct hd_geometry geo;
-
     if(cmd == HDIO_GETGEO) {
         printk(KERN_DEBUG "ramdisk: blockdev_ioctl::HDIO_GETGEO");
 
+        struct hd_geometry geo;
         geo.heads = 4;
         geo.sectors = 16;
         geo.cylinders = (ramdisk_device->capacity_sectors & ~0x3f) >> 6;
@@ -153,8 +146,6 @@ static struct blk_mq_ops mq_ops = {
 };
 
 static void do_cleanup(void) {
-    printk(KERN_DEBUG "ramdisk: do_cleanup\n");
-
     if(ramdisk_device) {
         if(ramdisk_device->_disk_added) {
             // Remove the block device
@@ -185,17 +176,12 @@ static void do_cleanup(void) {
 
 static int __init ramdisk_driver_init(void)
 {
-    int err;
-
-    printk(KERN_DEBUG "ramdisk: ramdisk_driver_init");
-
     // Register new block device and get device major number
     dev_major = register_blkdev(dev_major, "ramdisk");
     if (dev_major < 0) {
         printk(KERN_ERR "ramdisk: register_blkdev failed\n");
         return -EBUSY;
     }
-    printk(KERN_DEBUG "ramdisk: Got dev_major %d\n", dev_major);
 
     // Allocate the block device structure
     ramdisk_device = kzalloc(sizeof(struct ramdisk_device), GFP_KERNEL);
@@ -219,7 +205,6 @@ static int __init ramdisk_driver_init(void)
 
         return -ENOMEM;
     }
-    printk(KERN_DEBUG "ramdisk: Allocated %d bytes\n", TOTAL_SECTORS * SECTOR_SIZE);
 
     // Allocate new disk
     ramdisk_device->disk = blk_alloc_disk(1);
@@ -229,7 +214,6 @@ static int __init ramdisk_driver_init(void)
 
         return -ENOMEM;
     }
-    printk(KERN_DEBUG "ramdisk: blk_alloc_disk complete\n");
 
     // Initialise and Configure the tag set for queue
     printk(KERN_DEBUG "ramdisk: Initializing tag_set\n");
@@ -248,17 +232,15 @@ static int __init ramdisk_driver_init(void)
     ramdisk_device->tag_set->cmd_size = 0;
 
     // Set it up in the system
-    err = blk_mq_alloc_tag_set(ramdisk_device->tag_set);
+    int err = blk_mq_alloc_tag_set(ramdisk_device->tag_set);
     if (err) {
         printk(KERN_ERR "ramdisk: blk_mq_alloc_tag_set returned error %d\n", err);
         do_cleanup();
 
         return -ENOMEM;
     }
-    printk(KERN_DEBUG "ramdisk: blk_mq_alloc_sq_tag_set complete\n");
 
     // Allocate queues
-    printk(KERN_DEBUG "ramdisk: blk_mq_init_allocated_queue...\n");
     if (blk_mq_init_allocated_queue(ramdisk_device->tag_set, ramdisk_device->disk->queue)) {
         printk(KERN_ERR "ramdisk: blk_mq_init_allocated_queue failed");
         do_cleanup();
@@ -267,7 +249,6 @@ static int __init ramdisk_driver_init(void)
     }
     blk_queue_rq_timeout(ramdisk_device->disk->queue, BLK_DEFAULT_SG_TIMEOUT);
     ramdisk_device->disk->queue->queuedata = ramdisk_device;
-    printk(KERN_DEBUG "ramdisk: blk_mq_init_allocated_queue complete\n");
 
     // Set all required flags and data
     ramdisk_device->disk->flags = GENHD_FL_NO_PART;
@@ -287,7 +268,6 @@ static int __init ramdisk_driver_init(void)
     blk_queue_logical_block_size(ramdisk_device->disk->queue, SECTOR_SIZE);
 
     // Notify kernel about new disk device
-    printk(KERN_DEBUG "ramdisk: Adding disk %s\n", ramdisk_device->disk->disk_name);
     err = device_add_disk(NULL, ramdisk_device->disk, NULL);
     if (err) {
         printk(KERN_ERR "ramdisk: device_add_disk returned error %d\n", err);
@@ -299,16 +279,12 @@ static int __init ramdisk_driver_init(void)
     // Mark add_disk succeeded
     ramdisk_device->_disk_added = true;
 
-    printk(KERN_DEBUG "ramdisk: Init Complete");
-
     return 0;
 }
 
 static void __exit ramdisk_driver_exit(void)
 {
-    printk(KERN_DEBUG "ramdisk: ramdisk_driver_exit");
     do_cleanup();
-    printk(KERN_DEBUG "ramdisk: ramdisk_driver_exit Complete");
 }
 
 module_init(ramdisk_driver_init);
