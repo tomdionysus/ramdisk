@@ -30,9 +30,6 @@ remove:
 unload:
 	rmmod -fv $(BINARY)
 
-which:
-	echo $(TARGET_PATH)/$(BINARY).ko
-
 log:
 	echo "7 7" > /proc/sys/kernel/printk
 	dmesg -r | grep ramdisk
@@ -44,6 +41,6 @@ clean:
 	rm -f *.o
 	rm -f *.test_*
 	rm -f .*.cmd
-	rm -f test_*.mod*
+	rm -f ramdisk.mod*
 	rm -f Module.symvers
 	rm -f modules.order

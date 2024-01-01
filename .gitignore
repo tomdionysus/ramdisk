@@ -1,9 +1,8 @@
-/build
-
 *.ko
 *.o
 *.test_*
 .*.cmd
-test_*.mod*
+*.mod*
+.ramdisk*
 Module.symvers
 modules.order

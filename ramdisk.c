@@ -3,6 +3,10 @@
 //
 // Original by Oleg Kutkov (https://olegkutkov.me/2020/02/10/linux-block-device-driver)
 // Adapted for linux-6.6.7-0-lts by Tom Cully 2023
+//
+// Tested under linux 6.6.7-0-lts
+// 
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -13,82 +17,103 @@
 #include <linux/blk-mq.h>
 #include <linux/hdreg.h>
 
-#ifndef SECTOR_SIZE
-#define SECTOR_SIZE 512
-#endif
-
-#define SECTOR_SIZE_EXP __ffs(SECTOR_SIZE)
-
-#define TOTAL_PAGES 2048
+#define TOTAL_SECTORS 204800
 
 static int dev_major = 0;
 
-/* Just internal representation of the our block device
- * can hold any useful data */
-struct block_dev {
-    sector_t capacity;
-    u8 *data;   /* Data buffer to emulate real storage device */
+struct ramdisk_device {
+    sector_t capacity_sectors;
+    u8 *data;   // Data buffer to emulate real storage device
     struct blk_mq_tag_set *tag_set;
     struct gendisk *disk;
 
-    bool _device_add_disk_succeeded;
+    bool _disk_added;
 };
 
-/* Device instance */
-static struct block_dev *block_device = NULL;
+// Device instance
+static struct ramdisk_device *ramdisk_device = NULL;
 
 static int blockdev_open(struct gendisk *disk, blk_mode_t mode)
 {
-    printk(KERN_INFO "ramdisk: blockdev_open");
+    printk(KERN_DEBUG "ramdisk: blockdev_open");
+    if(!blk_get_queue(disk->queue)){ 
+        printk(KERN_ERR "ramdisk: blk_get_queue cannot get queue");
+        return -ENXIO;
+    }
+    printk(KERN_DEBUG "ramdisk: blk_get_queue complete");
 
     return 0;
 }
 
 static void blockdev_release(struct gendisk *disk)
 {
-    printk(KERN_INFO "ramdisk: blockdev_release");
+    printk(KERN_DEBUG "ramdisk: blockdev_release");
+    blk_put_queue(disk->queue);
+    printk(KERN_DEBUG "ramdisk: blk_put_queue complete");
 }
 
-static struct block_device_operations blockdev_ops = {
+static int blockdev_ioctl(struct block_device *bdev, fmode_t mode, unsigned cmd, unsigned long arg)
+{
+    printk(KERN_DEBUG "ramdisk: blockdev_ioctl command %d", cmd);
+
+    struct hd_geometry geo;
+
+    if(cmd == HDIO_GETGEO) {
+        printk(KERN_DEBUG "ramdisk: blockdev_ioctl::HDIO_GETGEO");
+
+        geo.heads = 4;
+        geo.sectors = 16;
+        geo.cylinders = (ramdisk_device->capacity_sectors & ~0x3f) >> 6;
+        geo.start = 4;
+        if (copy_to_user((void*)arg, &geo, sizeof(geo))) {
+            printk(KERN_ERR "ramdisk: copy_to_user failed during HDIO_GETGEO");
+            return -EFAULT;
+        }
+        return 0;
+    }
+
+    return -ENOTTY;
+}
+
+static struct block_device_operations ramdisk_ops = {
     .owner = THIS_MODULE,
     .open = blockdev_open,
     .release = blockdev_release,
+    .ioctl = blockdev_ioctl,
 };
 
-/* Serve requests */
-static int do_request(struct request *rq, unsigned int *nr_bytes)
+// Serve requests
+static int process_request(struct request *rq, unsigned int *nr_bytes)
 {
     int ret = 0;
     struct bio_vec bvec;
     struct req_iterator iter;
-    struct block_dev *dev = rq->q->queuedata;
+    struct ramdisk_device *dev = rq->q->queuedata;
     loff_t pos = blk_rq_pos(rq) << SECTOR_SHIFT;
-    loff_t dev_size = (loff_t)(dev->capacity << SECTOR_SHIFT);
+    loff_t dev_size = (loff_t)(dev->capacity_sectors << SECTOR_SHIFT);
 
-    printk(KERN_INFO KERN_WARNING "sblkdev: request start from sector %lld  pos = %lld  dev_size = %lld\n", blk_rq_pos(rq), pos, dev_size);
-
-    /* Iterate over all requests segments */
+    // Iterate over all requests segments
     rq_for_each_segment(bvec, rq, iter)
     {
         unsigned long b_len = bvec.bv_len;
 
-        /* Get pointer to the data */
+        // Get pointer to the data
         void* b_buf = page_address(bvec.bv_page) + bvec.bv_offset;
 
-        /* Simple check that we are not out of the memory bounds */
+        // Simple check that we are not out of the memory bounds
         if ((pos + b_len) > dev_size) {
             b_len = (unsigned long)(dev_size - pos);
         }
 
         if (rq_data_dir(rq) == WRITE) {
-            /* Copy data to the buffer in to required position */
+            // Copy data to the buffer in to required position
             memcpy(dev->data + pos, b_buf, b_len);
         } else {
-            /* Read data from the buffer's position */
+            // Read data from the buffer's position
             memcpy(b_buf, dev->data + pos, b_len);
         }
 
-        /* Increment counters */
+        // Increment counters
         pos += b_len;
         *nr_bytes += b_len;
     }
@@ -96,62 +121,70 @@ static int do_request(struct request *rq, unsigned int *nr_bytes)
     return ret;
 }
 
-/* queue callback function */
-static blk_status_t queue_rq(struct blk_mq_hw_ctx *hctx, const struct blk_mq_queue_data* bd)
+// queue callback function
+static blk_status_t queue_request(struct blk_mq_hw_ctx *hctx, const struct blk_mq_queue_data* bd)
 {
-    printk(KERN_DEBUG "ramdisk: queue_rq Called");
-
     unsigned int nr_bytes = 0;
     blk_status_t status = BLK_STS_OK;
     struct request *rq = bd->rq;
 
-    /* Start request serving procedure */
+    // Start request serving procedure
     blk_mq_start_request(rq);
 
-    if (do_request(rq, &nr_bytes) != 0) {
+    if (process_request(rq, &nr_bytes) != 0) {
         status = BLK_STS_IOERR;
     }
 
-    /* Notify kernel about processed nr_bytes */
+    // Notify kernel about processed nr_bytes
     if (blk_update_request(rq, status, nr_bytes)) {
-        /* Shouldn't fail */
+        printk(KERN_ERR "ramdisk: blk_update_request Failed");
+        // Shouldn't fail
         BUG();
     }
 
-    /* Stop request serving procedure */
+    // Stop request serving procedure
     __blk_mq_end_request(rq, status);
 
     return status;
 }
 
 static struct blk_mq_ops mq_ops = {
-    .queue_rq = queue_rq,
+    .queue_rq = queue_request,
 };
 
 static void do_cleanup(void) {
     printk(KERN_DEBUG "ramdisk: do_cleanup\n");
 
-    if(dev_major>0) {
-        unregister_blkdev(dev_major, "ramdisk");
+    if(ramdisk_device) {
+        if(ramdisk_device->_disk_added) {
+            // Remove the block device
+            del_gendisk(ramdisk_device->disk);
+            // // Free the queue
+            // if(ramdisk_device->disk->queue) {
+            //     blk_mq_destroy_queue(ramdisk_device->disk->queue);
+            //     blk_put_queue(ramdisk_device->disk->queue);
+            // }
+            // Free the block device 
+            put_disk(ramdisk_device->disk);
+            // For belt and braces if there's a failure later on
+            ramdisk_device->_disk_added = false;
+        }
+
+        if(ramdisk_device->tag_set) {
+            blk_mq_free_tag_set(ramdisk_device->tag_set);
+            kfree(ramdisk_device->tag_set);
+        }
+
+        if(ramdisk_device->data) {
+            vfree(ramdisk_device->data);
+        }
+
+        kfree(ramdisk_device);
+        ramdisk_device = NULL;
     }
 
-    if(block_device) {
-        if(block_device->tag_set) {
-            blk_mq_free_tag_set(block_device->tag_set);
-            kfree(block_device->tag_set);
-        }
-
-        if(block_device->_device_add_disk_succeeded) {
-            put_disk(block_device->disk);
-            block_device->_device_add_disk_succeeded = false;
-        }
-
-        if(block_device->data) {
-            kfree(block_device->data);
-        }
-
-        kfree(block_device);
-        block_device = NULL;
+    if(dev_major>0) {
+        unregister_blkdev(dev_major, "ramdisk");
     }
 }
 
@@ -161,97 +194,106 @@ static int __init ramdisk_driver_init(void)
 
     printk(KERN_DEBUG "ramdisk: ramdisk_driver_init");
 
-    /* Register new block device and get device major number */
+    // Register new block device and get device major number
     dev_major = register_blkdev(dev_major, "ramdisk");
-
     if (dev_major < 0) {
         printk(KERN_ERR "ramdisk: register_blkdev failed\n");
         return -EBUSY;
     }
-
     printk(KERN_DEBUG "ramdisk: Got dev_major %d\n", dev_major);
 
-    block_device = kzalloc(sizeof(struct block_dev), GFP_KERNEL);
-    block_device->_device_add_disk_succeeded = false;
+    // Allocate the block device structure
+    ramdisk_device = kzalloc(sizeof(struct ramdisk_device), GFP_KERNEL);
+    ramdisk_device->_disk_added = false;
 
-    if (block_device == NULL) {
-        printk(KERN_ERR "ramdisk: Failed to allocate struct block_dev\n");
+    if (ramdisk_device == NULL) {
+        printk(KERN_ERR "ramdisk: Failed to allocate struct ramdisk_device\n");
         do_cleanup();
 
         return -ENOMEM;
     }
 
-    /* Set some random capacity of the device */
-    block_device->capacity = (TOTAL_PAGES * PAGE_SIZE) >> SECTOR_SIZE_EXP;
-    /* Allocate corresponding data buffer */
-    block_device->data = kzalloc(block_device->capacity << SECTOR_SIZE_EXP, GFP_KERNEL);
+    // Allocate the actual ramdisk from virtual memory
+    ramdisk_device->capacity_sectors = (TOTAL_SECTORS * SECTOR_SIZE) >> SECTOR_SHIFT;
 
-    printk(KERN_DEBUG "ramdisk: Allocated %d bytes\n", ksize(block_device->data));
-    
-    if (block_device->data == NULL) {
+    // Allocate corresponding data buffer
+    ramdisk_device->data = vmalloc(ramdisk_device->capacity_sectors << SECTOR_SHIFT);
+    if (ramdisk_device->data == NULL) {
         printk(KERN_ERR "ramdisk: Failed to allocate device IO buffer\n");
         do_cleanup();
 
         return -ENOMEM;
     }
+    printk(KERN_DEBUG "ramdisk: Allocated %d bytes\n", TOTAL_SECTORS * SECTOR_SIZE);
 
-    printk(KERN_DEBUG "ramdisk: Initializing queue\n");
+    // Allocate new disk
+    ramdisk_device->disk = blk_alloc_disk(1);
+    if (ramdisk_device->disk == NULL) {
+        printk(KERN_ERR "ramdisk: blk_alloc_disk failed");
+        do_cleanup();
 
-    block_device->tag_set = kzalloc(sizeof(struct blk_mq_tag_set), GFP_KERNEL);
-    
-    if (block_device->tag_set == NULL) {
+        return -ENOMEM;
+    }
+    printk(KERN_DEBUG "ramdisk: blk_alloc_disk complete\n");
+
+    // Initialise and Configure the tag set for queue
+    printk(KERN_DEBUG "ramdisk: Initializing tag_set\n");
+    ramdisk_device->tag_set = kzalloc(sizeof(struct blk_mq_tag_set), GFP_KERNEL);
+    if (ramdisk_device->tag_set == NULL) {
         printk(KERN_ERR "ramdisk: Failed to allocate blk_mq_tag_set\n");
         do_cleanup();
 
         return -ENOMEM;
     }
+    ramdisk_device->tag_set->ops = &mq_ops;
+    ramdisk_device->tag_set->queue_depth = 128;
+    ramdisk_device->tag_set->numa_node = NUMA_NO_NODE;
+    ramdisk_device->tag_set->flags = BLK_MQ_F_SHOULD_MERGE;
+    ramdisk_device->tag_set->nr_hw_queues = 1;
+    ramdisk_device->tag_set->cmd_size = 0;
 
-    block_device->tag_set->ops = &mq_ops;
-    block_device->tag_set->queue_depth = 128;
-    block_device->tag_set->numa_node = NUMA_NO_NODE;
-    block_device->tag_set->flags = BLK_MQ_F_SHOULD_MERGE;
-    block_device->tag_set->nr_hw_queues = num_present_cpus();
-    block_device->tag_set->cmd_size = 0;
-
-    err = blk_mq_alloc_tag_set(block_device->tag_set);
+    // Set it up in the system
+    err = blk_mq_alloc_tag_set(ramdisk_device->tag_set);
     if (err) {
         printk(KERN_ERR "ramdisk: blk_mq_alloc_tag_set returned error %d\n", err);
         do_cleanup();
 
         return -ENOMEM;
     }
-
     printk(KERN_DEBUG "ramdisk: blk_mq_alloc_sq_tag_set complete\n");
 
-    /* Allocate new disk */
-    block_device->disk = blk_alloc_disk(1);
-    /* Set driver's structure as user data of the queue */
-    block_device->disk->queue->queuedata = block_device;
+    // Allocate queues
+    printk(KERN_DEBUG "ramdisk: blk_mq_init_allocated_queue...\n");
+    if (blk_mq_init_allocated_queue(ramdisk_device->tag_set, ramdisk_device->disk->queue)) {
+        printk(KERN_ERR "ramdisk: blk_mq_init_allocated_queue failed");
+        do_cleanup();
 
-    printk(KERN_DEBUG "ramdisk: blk_alloc_disk complete\n");
+        return -ENOMEM;
+    }
+    blk_queue_rq_timeout(ramdisk_device->disk->queue, BLK_DEFAULT_SG_TIMEOUT);
+    ramdisk_device->disk->queue->queuedata = ramdisk_device;
+    printk(KERN_DEBUG "ramdisk: blk_mq_init_allocated_queue complete\n");
 
-    /* Set all required flags and data */
-    block_device->disk->flags = GENHD_FL_NO_PART;
-    block_device->disk->major = dev_major;
-    block_device->disk->first_minor = 0;
-    block_device->disk->minors = 1;
-    block_device->disk->fops = &blockdev_ops;
-    block_device->disk->private_data = block_device;
+    // Set all required flags and data
+    ramdisk_device->disk->flags = GENHD_FL_NO_PART;
+    ramdisk_device->disk->major = dev_major;
+    ramdisk_device->disk->first_minor = 0;
+    ramdisk_device->disk->minors = 1;
+    ramdisk_device->disk->fops = &ramdisk_ops;
+    ramdisk_device->disk->private_data = ramdisk_device;
 
-    /* Set device name as it will be represented in /dev */
-    sprintf(block_device->disk->disk_name, "ramdisk0");
+    // Set device name as it will be represented in /dev
+    sprintf(ramdisk_device->disk->disk_name, "ramdisk");
 
-    printk(KERN_DEBUG "ramdisk: Adding disk %s\n", block_device->disk->disk_name);
+    // Set device capacity_sectors
+    set_capacity(ramdisk_device->disk, ramdisk_device->capacity_sectors);
 
-    /* Set device capacity */
-    set_capacity(block_device->disk, block_device->capacity);
-    printk(KERN_DEBUG "ramdisk: set_capacity complete\n");
+    // Set the logical block size
+    blk_queue_logical_block_size(ramdisk_device->disk->queue, SECTOR_SIZE);
 
-    blk_queue_logical_block_size(block_device->disk->queue, SECTOR_SIZE);
-    printk(KERN_DEBUG "ramdisk: blk_queue_logical_block_size complete\n");
-
-    /* Notify kernel about new disk device */
-    err = device_add_disk(NULL, block_device->disk, NULL);
+    // Notify kernel about new disk device
+    printk(KERN_DEBUG "ramdisk: Adding disk %s\n", ramdisk_device->disk->disk_name);
+    err = device_add_disk(NULL, ramdisk_device->disk, NULL);
     if (err) {
         printk(KERN_ERR "ramdisk: device_add_disk returned error %d\n", err);
         do_cleanup();
@@ -259,7 +301,8 @@ static int __init ramdisk_driver_init(void)
         return -ENOMEM;
     }
 
-    block_device->_device_add_disk_succeeded = true;
+    // Mark add_disk succeeded
+    ramdisk_device->_disk_added = true;
 
     printk(KERN_DEBUG "ramdisk: Init Complete");
 
