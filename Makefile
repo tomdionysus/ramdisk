@@ -1,6 +1,6 @@
 CONFIG_MODULE_SIG=n
 
-BINARY     := test_ramdisk
+BINARY      := test_ramdisk
 KERNEL      := /lib/modules/$(shell uname -r)/build
 ARCH        := ${uname -m}
 C_FLAGS     := -Wall

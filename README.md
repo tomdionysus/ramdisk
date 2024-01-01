@@ -9,8 +9,24 @@ I'm hoping this might be useful as a starting point if you're writing your own b
 
 ## Build tools, linux headers, kernel module tools
 
+
+### Alpine Linux 
+
 ```bash
-apt install build-essential linux-headers-6.2.0-39-generic kmod
+apk add build-base linux-headers alpine-sdk linux-lts-dev kmod lsblk e2fsprogs
+```
+
+```bash
+make
+make install
+depmod -a
+make load
+```
+
+### Ubuntu 22.04 LTS
+
+```bash
+apt install build-essential linux-headers-$(uname -r) kmod 
 ```
 
 ## Building
@@ -20,16 +36,26 @@ make
 make install
 ```
 
-## Load Kernel module
+## Load/Unload Kernel module
 
 ```bash
 make load
 ```
 
-## Unload Kernel module
-
 ```bash
 make unload
+```
+
+## Example Usage
+
+These commands should show the device at `/dev/ramdisk`, format the ramdisk for ext4, create a mount directoy `/rdtest` and then mount the ramdisk at that mountpoint. The last `lsblk` will show the ramdisk mounted at that path.
+
+```bash
+lsblk -l
+mkfs.ext4 /dev/ramdisk
+mkdir /rdtest
+mount /dev/ramdisk /rdtest
+lsblk -f
 ```
 
 ## License

@@ -22,17 +22,7 @@
 //
 // Tested under linux 6.6.7-0-lts
 //
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/slab.h>
-#include <linux/vmalloc.h>
-#include <linux/fs.h>
-#include <linux/blkdev.h>
-#include <linux/buffer_head.h>
-#include <linux/blk-mq.h>
-#include <linux/hdreg.h>
-
-#define TOTAL_SECTORS 204800
+#include "ramdisk.h"
 
 static int dev_major = 0;
 
@@ -160,7 +150,8 @@ static struct blk_mq_ops ramdisk_mq_ops = {
     .queue_rq = ramdisk_queue_request,
 };
 
-static void ramdisk_cleanup(void) {
+static void ramdisk_cleanup(void) 
+{
     if(dev) {
         if(dev->_disk_added) {
             // Remove the block device
