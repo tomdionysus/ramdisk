@@ -231,7 +231,6 @@ static int __init ramdisk_driver_init(void)
     }
 
     // Initialise and Configure the tag set for queue
-    printk(KERN_DEBUG "ramdisk: Initializing tag_set\n");
     ramdisk_device->tag_set = kzalloc(sizeof(struct blk_mq_tag_set), GFP_KERNEL);
     if (ramdisk_device->tag_set == NULL) {
         printk(KERN_ERR "ramdisk: Failed to allocate blk_mq_tag_set\n");
