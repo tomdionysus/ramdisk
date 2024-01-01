@@ -1,1 +1,9 @@
 /build
+
+*.ko
+*.o
+*.test_*
+.*.cmd
+test_*.mod*
+Module.symvers
+modules.order
