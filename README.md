@@ -9,7 +9,7 @@ I'm hoping this might be useful as a starting point if you're writing your own b
 
 ## Build
 
-Please follow the instructions [for your distro](docs/build_distros.md).
+Please follow the instructions [for your distro](../../tree/main/docs/build_distros.md).
 
 ## Example Usage
 
