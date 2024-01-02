@@ -42,6 +42,14 @@ mount /dev/ramdisk /rdtest
 lsblk -f
 ```
 
+## Benchmark
+
+You can measure the peformance of the ramdisk with `dd`. This assumes you mounted it at `/rdtest` as above:
+
+```bash
+dd if=/dev/zero of=/rdtest/testfile bs=1M count=50 oflag=direct
+```
+
 ## License
 
 ramdisk is licensed under the GNU General Public License v3. Please see [LICENSE](LICENSE).
