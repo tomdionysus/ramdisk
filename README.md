@@ -11,8 +11,8 @@ The Linux block device API varies over different versions of the kernel, please 
 | Linux Distribution | Version             | Linux Kernel          | Branch                                   |
 |--------------------|---------------------|-----------------------|------------------------------------------|
 | Ubuntu             | 22.04 LTS           | 5.15.0-91-generic     | [linux-5.15.x](../../tree/linux-5.15.x)  |
-| Ubuntu             | 22.04 LTS           | 6.2.0-39-generic      | [linux-6.6.x](../../tree/linux-6.2.x)    |
-| Alpine             | 3.19.0              | 6.6.7-0-lts           | [linux-6.6.x](../../tree/linux-6.5.x)    |
+| Ubuntu             | 22.04 LTS           | 6.2.0-39-generic      | [linux-6.2.x](../../tree/linux-6.2.x)    |
+| Alpine             | 3.19.0              | 6.6.7-0-lts           | [linux-6.5.x](../../tree/linux-6.5.x)    |
 | Raspberry Pi OS    | Debian GNU/Linux 11 | 6.1.21-v8+            | [linux-6.1.x](../../tree/linux-6.1.x)    |
 | Fedora             | 39                  | 6.5.6-300.fc39.x86_64 | [linux-6.5.x](../../tree/linux-6.5.x)    |
 | Debian             | 11                  |                       | *TBC*                                    |
