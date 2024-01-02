@@ -8,7 +8,7 @@ This is based on [Oleg Kutkov](https://olegkutkov.me/)'s work from 2020 - [Linux
 
 I'm hoping this might be useful as a starting point if you're writing your own block devices for this version of the linux kernel.  
 
-## Build tools, linux headers, kernel module tools
+## Build tools, linux headers, kernel module tools (Ubuntu)
 
 ```bash
 apt install build-essential linux-headers-$(uname -r) kmod 
@@ -19,6 +19,7 @@ apt install build-essential linux-headers-$(uname -r) kmod
 ```bash
 make
 make install
+depmod -a
 ```
 
 ## Load/Unload Kernel module

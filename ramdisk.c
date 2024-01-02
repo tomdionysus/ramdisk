@@ -38,9 +38,9 @@ struct ramdisk {
 // Device instance
 static struct ramdisk *dev = NULL;
 
-static int ramdisk_open(struct gendisk *disk, blk_mode_t mode)
+static int ramdisk_open(struct block_device *device, fmode_t mode)
 {
-    if(!blk_get_queue(disk->queue)){ 
+    if(!blk_get_queue(device->bd_disk->queue)){ 
         printk(KERN_ERR "ramdisk: blk_get_queue cannot get queue");
         return -ENXIO;
     }
@@ -48,7 +48,7 @@ static int ramdisk_open(struct gendisk *disk, blk_mode_t mode)
     return 0;
 }
 
-static void ramdisk_release(struct gendisk *disk)
+static void ramdisk_release(struct gendisk *disk, fmode_t mode)
 {
     blk_put_queue(disk->queue);
 }
@@ -256,7 +256,7 @@ static int __init ramdisk_driver_init(void)
     dev->disk->queue->queuedata = dev;
 
     // Set all required flags and data
-    dev->disk->flags = GENHD_FL_NO_PART;
+    dev->disk->flags = GENHD_FL_NO_PART_SCAN;
     dev->disk->major = dev_major;
     dev->disk->first_minor = 0;
     dev->disk->minors = 1;
