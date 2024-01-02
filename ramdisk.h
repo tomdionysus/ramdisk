@@ -43,8 +43,8 @@ static void __exit ramdisk_driver_exit(void);
 static void ramdisk_cleanup(void);
 
 // Device functions
-static int ramdisk_open(struct gendisk *disk, blk_mode_t mode);
-static void ramdisk_release(struct gendisk *disk);
+static int ramdisk_open(struct block_device *device, fmode_t mode);
+static void ramdisk_release(struct gendisk *disk, fmode_t mode);
 static int ramdisk_ioctl(struct block_device *bdev, fmode_t mode, unsigned cmd, unsigned long arg);
 
 // Queue Functions
