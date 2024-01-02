@@ -35,3 +35,8 @@ apk add build-base linux-headers alpine-sdk linux-lts-dev kmod lsblk e2fsprogs
 apt install build-essential raspberrypi-kernel-headers kmod 
 ```
 
+### CentOS
+
+```bash
+yum install -y dkms gcc kernel-devel-$(uname -r) kernel-headers-$(uname -r) make
+```
