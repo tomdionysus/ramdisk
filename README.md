@@ -1,40 +1,33 @@
 # ramdisk
+
 An experimental/teaching project to create a linux block driver kernel module for a ramdisk.
 
-This is a Linux 6.x.x+ kernel module that implements an in-memory blockstore, as a device `/dev/ramdisk`. The device is 100Mb in size.
+This is a kernel module that implements an in-memory blockstore, as a device `/dev/ramdisk`. The device is 100Mb in size.
 
-This is based on [Oleg Kutkov](https://olegkutkov.me/)'s work from 2020 - [Linux block device driver](https://olegkutkov.me/2020/02/10/linux-block-device-driver/) - however there have been significant changes to the way the 6.x.x kernel handles queue allocation and registration, and his excellent example no longer compiles for this kernel version. 
+The project is based on [Oleg Kutkov](https://olegkutkov.me/)'s work from 2020 - [Linux block device driver](https://olegkutkov.me/2020/02/10/linux-block-device-driver/).
 
-I'm hoping this might be useful as a starting point if you're writing your own block devices for this version of the linux kernel.  
+The Linux block device API varies over different versions of the kernel, please see the following table for the branch which is compatible given your distro:
+
+| Linux Distribution | Version          | Kernel        | Branch                                   |
+|--------------------|------------------|---------------|------------------------------------------|
+| Ubuntu             | 22.04 LTS        |               |                                          |
+| Alpine             | 3.19.0           | 6.6.7-0-lts   | [linux-6.6.x](/ramdisk/tree/linux-6.6.x) |
+| Fedora             | 36               |               | *TBC*                                    |
+| Debian             | 11               |               | *TBC*                                    |
+| CentOS             | 9                |               | *TBC*                                    |
+| openSUSE           | 15.4             |               | *TBC*                                    |
+| Arch Linux         | Rolling Release  |               | *TBC*                                    |
+| Manjaro            | 21.2             |               | *TBC*                                    |
+| Mint               | 20.3             |               | *TBC*                                    |
+
+It is my hope this might be useful as a starting point if you're writing your own block devices.
 
 ## Build tools, linux headers, kernel module tools
 
-
 ### Alpine Linux 
 
-```bash
 apk add build-base linux-headers alpine-sdk linux-lts-dev kmod lsblk e2fsprogs
-```
-
-```bash
-make
-make install
-depmod -a
-make load
-```
-
-### Ubuntu 22.04 LTS
-
-```bash
 apt install build-essential linux-headers-$(uname -r) kmod 
-```
-
-## Building
-
-```bash
-make
-make install
-```
 
 ## Load/Unload Kernel module
 
