@@ -32,10 +32,7 @@ It is my hope this might be useful as a starting point if you're writing your ow
 
 ## Build tools, linux headers, kernel module tools
 
-### Alpine Linux 
-
-apk add build-base linux-headers alpine-sdk linux-lts-dev kmod lsblk e2fsprogs
-apt install build-essential linux-headers-$(uname -r) kmod 
+These vary depending on which distribution you're using - please see the branches in the table above for more info.
 
 ## Load/Unload Kernel module
 
