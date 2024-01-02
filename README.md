@@ -8,10 +8,11 @@ The project is based on [Oleg Kutkov](https://olegkutkov.me/)'s work from 2020 -
 
 The Linux block device API varies over different versions of the kernel, please see the following table for the branch which is compatible given your distro:
 
-| Linux Distribution | Version          | Kernel        | Branch                                   |
+| Linux Distribution | Version          | Linux Kernel  | Branch                                   |
 |--------------------|------------------|---------------|------------------------------------------|
 | Ubuntu             | 22.04 LTS        |               |                                          |
 | Alpine             | 3.19.0           | 6.6.7-0-lts   | [linux-6.6.x](/ramdisk/tree/linux-6.6.x) |
+| Raspbian           |                  |               | *TBC*                                    |
 | Fedora             | 36               |               | *TBC*                                    |
 | Debian             | 11               |               | *TBC*                                    |
 | CentOS             | 9                |               | *TBC*                                    |
@@ -19,6 +20,12 @@ The Linux block device API varies over different versions of the kernel, please 
 | Arch Linux         | Rolling Release  |               | *TBC*                                    |
 | Manjaro            | 21.2             |               | *TBC*                                    |
 | Mint               | 20.3             |               | *TBC*                                    |
+
+These branches have been tested only with the specific distros and kernels. You can get the linux kernel version of your distro with the following:
+
+```bash
+uname -r
+```
 
 It is my hope this might be useful as a starting point if you're writing your own block devices.
 
