@@ -12,7 +12,7 @@ The Linux block device API varies over different versions of the kernel, please 
 |--------------------|---------------------|-----------------------|------------------------------------------|
 | Ubuntu             | 22.04 LTS           | 5.15.0-91-generic     | [linux-5.15.x](../../tree/linux-5.15.x)  |
 | Ubuntu             | 22.04 LTS           | 6.2.0-39-generic      | [linux-6.6.x](../../tree/linux-6.2.x)    |
-| Alpine             | 3.19.0              | 6.6.7-0-lts           | [linux-6.6.x](../../tree/linux-6.6.x)    |
+| Alpine             | 3.19.0              | 6.6.7-0-lts           | [linux-6.6.x](../../tree/linux-6.5.x)    |
 | Raspberry Pi OS    | Debian GNU/Linux 11 | 6.1.21-v8+            | [linux-6.1.x](../../tree/linux-6.1.x)    |
 | Fedora             | 39                  | 6.5.6-300.fc39.x86_64 | [linux-6.5.x](../../tree/linux-6.5.x)    |
 | Debian             | 11                  |                       | *TBC*                                    |
@@ -28,29 +28,18 @@ These branches have been tested only with the specific distros and kernels. If y
 uname -r
 ```
 
-
-
 It is my hope this might be useful as a starting point if you're writing your own block devices.
 
 ## Build tools, linux headers, kernel module tools
 
-These vary depending on which distribution you're using - please see the branches in the table above for more info.
-
-## Load/Unload Kernel module
-
-```bash
-make load
-```
-
-```bash
-make unload
-```
+Please follow the build instructions [for your distro](docs/build_distros.md).
 
 ## Example Usage
 
 These commands should show the device at `/dev/ramdisk`, format the ramdisk for ext4, create a mount directoy `/rdtest` and then mount the ramdisk at that mountpoint. The last `lsblk` will show the ramdisk mounted at that path.
 
 ```bash
+make load
 lsblk -l
 mkfs.ext4 /dev/ramdisk
 mkdir /rdtest
