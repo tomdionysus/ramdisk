@@ -7,44 +7,9 @@ This is based on [Oleg Kutkov](https://olegkutkov.me/)'s work from 2020 - [Linux
 
 I'm hoping this might be useful as a starting point if you're writing your own block devices for this version of the linux kernel.  
 
-## Build tools, linux headers, kernel module tools
+## Build
 
-
-### Alpine Linux 
-
-```bash
-apk add build-base linux-headers alpine-sdk linux-lts-dev kmod lsblk e2fsprogs
-```
-
-```bash
-make
-make install
-depmod -a
-make load
-```
-
-### Ubuntu 22.04 LTS
-
-```bash
-apt install build-essential linux-headers-$(uname -r) kmod 
-```
-
-## Building
-
-```bash
-make
-make install
-```
-
-## Load/Unload Kernel module
-
-```bash
-make load
-```
-
-```bash
-make unload
-```
+Please follow the instructions [for your distro](docs/build_distros.md).
 
 ## Example Usage
 
