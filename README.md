@@ -1,6 +1,6 @@
 # ramdisk
 
-An experimental/teaching project to create a linux block driver kernel module for a ramdisk.
+An experimental/teaching project to create a linux block driver kernel module for a ramdisk - reimplementing [brd](https://docs.kernel.org/admin-guide/blockdev/ramdisk.html).
 
 This is a kernel module that implements an in-memory blockstore, as a device `/dev/ramdisk`. The device is 100Mb in size.
 
