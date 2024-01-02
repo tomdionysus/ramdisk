@@ -5,7 +5,7 @@
 Your build enviromnent and dependences will depend on the linux distro you are using. In gnereal, you will need:
 * **build-essentials** or the equivalent, which is a C compiler and associated support tools
 * **kernel headers** for the specific version of the linux kernel you are using
-* **kernel tools** usually *kmod* or an eqivalent package, for loading, querying and unloading kernel modules.
+* **kernel tools** usually *kmod* or an equivalent package, for loading, querying and unloading kernel modules.
 
 ## Dependencies
 
