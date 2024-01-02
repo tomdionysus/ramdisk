@@ -8,29 +8,9 @@ This is based on [Oleg Kutkov](https://olegkutkov.me/)'s work from 2020 - [Linux
 
 I'm hoping this might be useful as a starting point if you're writing your own block devices for this version of the linux kernel.  
 
-## Build tools, linux headers, kernel module tools (Raspbian)
+## Build
 
-```bash
-apt install build-essential raspberrypi-kernel-headers kmod 
-```
-
-## Building
-
-```bash
-make
-make install
-depmod -a
-```
-
-## Load/Unload Kernel module
-
-```bash
-make load
-```
-
-```bash
-make unload
-```
+Please follow the instructions [for your distro](../../tree/main/docs/build_distros.md).
 
 ## Example Usage
 
