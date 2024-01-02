@@ -4,7 +4,7 @@ An experimental/teaching project to create a linux block driver kernel module fo
 
 This is a kernel module that implements an in-memory blockstore, as a device `/dev/ramdisk`. The device is 100Mb in size.
 
-The project is based on [Oleg Kutkov](https://olegkutkov.me/)'s work from 2020 - [Linux block device driver](https://olegkutkov.me/2020/02/10/linux-block-device-driver/).
+The project is based on [Oleg Kutkov's article from 2020](https://olegkutkov.me/) - [Linux block device driver](https://olegkutkov.me/2020/02/10/linux-block-device-driver/).
 
 The Linux block device API varies over different versions of the kernel, please see the following table for the branch which is compatible given your distro:
 
