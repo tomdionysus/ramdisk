@@ -25,6 +25,10 @@ uname -r
 
 It is my hope this might be useful as a starting point if you're writing your own block devices.
 
+## Status
+
+ramdisk has been tested working in Jan 2024 on the platforms and kernels above, and can be considered BETA.
+
 ## Build tools, linux headers, kernel module tools
 
 Please follow the build instructions [for your distro](docs/build_distros.md).
